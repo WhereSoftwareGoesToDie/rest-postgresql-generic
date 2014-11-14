@@ -1,21 +1,12 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
-
 module Rest.PostgreSQL.Generic where
 
-import Rest
+import Rest hiding (range)
 import qualified Rest.Resource as R
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.Model
-import Data.Text
-import GHC.Generics
 
 import Control.Monad.Reader
 import Control.Applicative
@@ -25,20 +16,6 @@ import Data.JSON.Schema
 import Data.Aeson hiding (Number, Object)
 import Data.Typeable
 import qualified Data.ByteString.Char8 as B
-
-data Post = Post
-  { postId :: DBKey
-  , postTitle :: Text
-  , postBody :: Text
-  } deriving (Generic, Typeable, Show)
-instance Model Post
-instance JSONSchema Post where
-  schema = gSchema
-instance JSONSchema DBKey where
-  schema _ = Choice [ Object [Field {key = "dBKey", required = True, content = Number unbounded}]
-                    , Object [Field {key = "nullKey", required = True, content = Object []}]]
-instance ToJSON Post where
-instance FromJSON Post where
 
 data ListId a = All
 
@@ -59,7 +36,9 @@ resource = mkResourceReader
 list :: forall m x. (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => ListId x -> ListHandler (ReaderT Connection m)
 list All = mkListing (jsonO . someO) $ \range -> do
   conn <- ask
-  liftIO $ (findAll conn :: IO [x])
+  res <- liftIO $ (findAll conn :: IO [x])
+  -- TODO: do pagination on the database side
+  return . take (count range) . drop (offset range) $ res
 
 get :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
 get = mkIdHandler (jsonE . jsonO . someO) $ \_ pk -> do
