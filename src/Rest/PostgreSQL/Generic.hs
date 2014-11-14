@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Rest.PostgreSQL.Generic where
 
 import Rest hiding (range)
@@ -62,3 +63,7 @@ create _ = mkInputHandler (jsonI . someI) $ \x -> do
   conn <- ask
   res <- liftIO $ trySave conn (x :: x)
   either (throwError . InputError . UnsupportedFormat . show) (const $ return ()) res
+
+instance JSONSchema DBKey where
+  schema _ = Choice [ Object [Field {key = "dBKey", required = True, content = Number unbounded}]
+                    , Object [Field {key = "nullKey", required = True, content = Object []}]]
