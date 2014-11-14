@@ -5,7 +5,7 @@ Providing a restful interface to a PostgreSQL database can involve a
 lot of boilerplate code. Required operations for such an interface are
 `GET`, `UPDATE`, `REMOVE`, `CREATE` and `LIST`. A resource in this
 sense is a database table. This lines up nicely with an ADT and should
-be possible to generalize using generics. This project aims to do
+be possible to generalise using generics. This project aims to do
 this.
 
 Frontend
@@ -18,7 +18,7 @@ The frontend is responsible for providing the rest interface.
 There are multiple rest server libraries in Haskell. The ones that
 seemed to fit best were *servant* and *rest*. Both *servant* and
 *rest* offer all the standard operations. Both can also be
-parametarized by the return/request type.
+parametarised by the return/request type.
 
 An important difference are the supported web frameworks. Both
 *servant* and *rest* are designed to be agnostic in this
@@ -26,7 +26,7 @@ respect. *Servant* however has only one such adaptor, namely for
 *scotty*. *Rest* on the other hand supports *snap*, *happstack* and
 *wai*. *rest* also seems to be a more actively developed project.
 
-*Rest* will also generate client code for Haskell and Javascript
+*Rest* will also generate client code for Haskell and JavaScript
  automatically using the defined Api.
 
 ### Marshalling/Unmarshalling
@@ -80,5 +80,5 @@ testRouter = root -/ post
 ```
 
 The web framework used to serve the resource is *snap*. This choice is
-arbitrary and can be excanged by any of the other supported
+arbitrary and can be exchanged by any of the other supported
 frameworks.
