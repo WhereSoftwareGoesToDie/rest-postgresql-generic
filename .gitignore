@@ -1,0 +1,12 @@
+dist/
+cabal-dev/
+.cabal-sandbox/
+*.o
+*.hi
+*.chi
+*.chs.h
+cabal.sandbox.config
+cabal.config
+tags
+# Generated files in tests
+/tests/test-results/
