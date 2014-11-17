@@ -1,22 +1,22 @@
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings #-}
 module Rest.PostgreSQL.Generic where
 
 import Rest hiding (range)
 import qualified Rest.Resource as R
 
-import Database.PostgreSQL.Simple
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.Model
+import Database.PostgreSQL.Simple
 
-import Control.Monad.Reader
 import Control.Applicative
 import Control.Monad.Error
+import Control.Monad.Reader
 
-import Data.JSON.Schema
 import Data.Aeson hiding (Number, Object)
-import Data.Typeable
 import qualified Data.ByteString.Char8 as B
+import Data.JSON.Schema
+import Data.Typeable
 
 data ListId a = All
 
