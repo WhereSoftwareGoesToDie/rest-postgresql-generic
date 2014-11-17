@@ -37,9 +37,7 @@ resource = mkResourceReader
 list :: forall m x. (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => ListId x -> ListHandler (ReaderT Connection m)
 list All = mkListing (jsonO . someO) $ \range -> do
   conn <- ask
-  res <- liftIO $ (findAll conn :: IO [x])
-  -- TODO: do pagination on the database side
-  return . take (count range) . drop (offset range) $ res
+  liftIO $ (findAll' conn (Just (offset range, count range)) :: IO [x])
 
 get :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
 get = mkIdHandler (jsonE . jsonO . someO) $ \_ pk -> do
