@@ -19,6 +19,8 @@ import Data.Aeson hiding (Number, Object)
 import Data.Typeable
 import qualified Data.ByteString.Char8 as B
 
+import Language.Haskell.TH
+
 data ListId a = All
 
 type GenericResource m tr x = Resource (ReaderT Connection m) (ReaderT (GDBRef tr x) (ReaderT Connection m)) (GDBRef tr x) (ListId x) Void
@@ -67,12 +69,17 @@ instance JSONSchema DBKey where
   schema _ = Choice [ Object [Field {key = "dBKey", required = True, content = Number unbounded}]
                     , Object [Field {key = "nullKey", required = True, content = Object []}]]
 
+instance JSONSchema (GDBRef a b) where
+  schema _ = Number unbounded
+
 -- | Helper to derive the requires instances
-deriveGenericRest :: TypeQ -> DecsQ
-deriveGenericRest dt = [d|
-  instance Model $dt
-  instance JSONSchema $dt where
-    schema = gSchema
-  instance ToJSON $dt where
-  instance FromJSON $dt where
-  |]
+deriveGenericRest :: Name -> DecsQ
+deriveGenericRest tyName = do
+  let ty = return $ ConT tyName
+  [d|
+    instance Model $ty
+    instance JSONSchema $ty where
+      schema = gSchema
+    instance ToJSON $ty where
+    instance FromJSON $ty where
+    |]
