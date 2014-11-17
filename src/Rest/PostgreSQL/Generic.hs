@@ -1,22 +1,23 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 module Rest.PostgreSQL.Generic where
 
 import Rest hiding (range)
 import qualified Rest.Resource as R
 
+import Database.PostgreSQL.Simple
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.Model
-import Database.PostgreSQL.Simple
 
+import Control.Monad.Reader
 import Control.Applicative
 import Control.Monad.Error
-import Control.Monad.Reader
 
-import Data.Aeson hiding (Number, Object)
-import qualified Data.ByteString.Char8 as B
 import Data.JSON.Schema
+import Data.Aeson hiding (Number, Object)
 import Data.Typeable
+import qualified Data.ByteString.Char8 as B
 
 data ListId a = All
 
@@ -65,3 +66,13 @@ create _ = mkInputHandler (jsonI . someI) $ \x -> do
 instance JSONSchema DBKey where
   schema _ = Choice [ Object [Field {key = "dBKey", required = True, content = Number unbounded}]
                     , Object [Field {key = "nullKey", required = True, content = Object []}]]
+
+-- | Helper to derive the requires instances
+deriveGenericRest :: TypeQ -> DecsQ
+deriveGenericRest dt = [d|
+  instance Model $dt
+  instance JSONSchema $dt where
+    schema = gSchema
+  instance ToJSON $dt where
+  instance FromJSON $dt where
+  |]
