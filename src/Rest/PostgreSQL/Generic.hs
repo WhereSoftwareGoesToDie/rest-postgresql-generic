@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 module Rest.PostgreSQL.Generic where
@@ -40,7 +41,15 @@ resource = mkResourceReader
 list :: forall m x. (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => ListId x -> ListHandler (ReaderT Connection m)
 list All = mkListing (jsonO . someO) $ \range -> do
   conn <- ask
-  liftIO $ (findAll' conn (Just (offset range, count range)) :: IO [x])
+  liftIO $ (findPage conn range :: IO [x])
+
+findPage
+  :: (Model x, JSONSchema x, ToJSON x, Typeable x)
+  => Connection -> Rest.Range -> IO [x]
+findPage conn Range{..} =
+  dbSelect conn $ setLimit count
+                $ setOffset offset
+                $ modelDBSelect
 
 get :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
 get = mkIdHandler (jsonE . jsonO . someO) $ \_ pk -> do
