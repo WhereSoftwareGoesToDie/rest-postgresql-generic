@@ -75,11 +75,10 @@ create _ = mkInputHandler (jsonI . someI) $ \x -> do
   either (throwError . InputError . UnsupportedFormat . show) (const $ return ()) res
 
 instance JSONSchema DBKey where
-  schema _ = Choice [ Object [Field {key = "dBKey", required = True, content = Number unbounded}]
-                    , Object [Field {key = "nullKey", required = True, content = Object []}]]
+  schema = gSchema
 
 instance JSONSchema (GDBRef a b) where
-  schema _ = Number unbounded
+  schema = gSchema
 
 -- | Helper to derive the requires instances
 deriveGenericRest :: Name -> DecsQ
