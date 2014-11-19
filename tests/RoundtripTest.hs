@@ -1,11 +1,11 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Main where
 
@@ -14,31 +14,32 @@ import Rest.Driver.Snap
 import Snap.Core (Snap)
 import Snap.Http.Server
 
-import System.Process
 import Control.Concurrent.Async
+import System.Process
 
-import Rest.PostgreSQL.Generic (resource, deriveGenericRest, GenericResource, WithGenericState, defaultState)
-import Database.PostgreSQL.Simple
+import Data.Text
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.CreateTable
-import Data.Text
+import Database.PostgreSQL.Simple
 import GHC.Generics
+import Rest.PostgreSQL.Generic (GenericResource, WithGenericState,
+                                defaultState, deriveGenericRest, resource)
 
-import Control.Monad.Reader
 import Control.Applicative
+import Control.Monad.Reader
 import Data.Typeable
 
 import Rest.Client.Internal hiding (Api)
+import qualified Rest.StringMap.HashMap.Strict
 import qualified Rest.Types.Container
 import qualified Rest.Types.Error
-import qualified Rest.StringMap.HashMap.Strict
 
 import Test.HUnit
 
 data Post = Post
-  { postId :: DBKey
+  { postId    :: DBKey
   , postTitle :: Text
-  , postBody :: Text
+  , postBody  :: Text
   } deriving (Generic, Typeable, Show, Eq)
 deriveGenericRest ''Post
 
@@ -110,10 +111,10 @@ throwErrors :: Show e => ApiResponse e a -> a
 throwErrors = either (error . show) id . responseBody
 
 type Identifier = String
- 
+
 readId :: Identifier -> [String]
 readId x = ["id", showUrl x]
- 
+
 list ::
        ApiStateC m =>
        [(String, String)] ->
@@ -123,7 +124,7 @@ list pList
           = [(hAccept, "text/json"), (hContentType, "text/plain")]
         request = makeReq "GET" "v1.0.0" [["post"]] pList rHeaders ""
       in doRequest fromJSON fromJSON request
- 
+
 byId :: ApiStateC m => String -> m (ApiResponse () Main.Post)
 byId string
   = let rHeaders
@@ -133,7 +134,7 @@ byId string
               rHeaders
               ""
       in doRequest fromJSON fromJSON request
- 
+
 saveById ::
            ApiStateC m => String -> Main.Post -> m (ApiResponse () ())
 saveById string input
@@ -144,7 +145,7 @@ saveById string input
               rHeaders
               (toJSON input)
       in doRequest fromXML (const ()) request
- 
+
 saveManyById ::
                ApiStateC m =>
                Rest.StringMap.HashMap.Strict.StringHashMap ([(Char)]) (Main.Post)
@@ -159,7 +160,7 @@ saveManyById input
           = makeReq "PUT" "v1.0.0" [["post"], ["id"]] [] rHeaders
               (toJSON input)
       in doRequest fromJSON fromJSON request
- 
+
 removeManyId ::
                ApiStateC m =>
                Rest.StringMap.HashMap.Strict.StringHashMap ([(Char)]) (()) ->
@@ -173,7 +174,7 @@ removeManyId input
           = makeReq "DELETE" "v1.0.0" [["post"], ["id"]] [] rHeaders
               (toJSON input)
       in doRequest fromJSON fromJSON request
- 
+
 create :: ApiStateC m => Main.Post -> m (ApiResponse () ())
 create input
   = let rHeaders
@@ -181,7 +182,7 @@ create input
         request
           = makeReq "POST" "v1.0.0" [["post"]] [] rHeaders (toJSON input)
       in doRequest fromXML (const ()) request
- 
+
 remove :: ApiStateC m => Identifier -> m (ApiResponse () ())
 remove post
   = let rHeaders
