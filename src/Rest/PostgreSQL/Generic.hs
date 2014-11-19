@@ -1,22 +1,26 @@
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 module Rest.PostgreSQL.Generic where
 
 import Rest hiding (range)
 import qualified Rest.Resource as R
 
+import Database.PostgreSQL.Simple
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.Model
-import Database.PostgreSQL.Simple
 
+import Control.Monad.Reader
 import Control.Applicative
 import Control.Monad.Error
-import Control.Monad.Reader
 
-import Data.Aeson hiding (Number, Object)
-import qualified Data.ByteString.Char8 as B
 import Data.JSON.Schema
+import Data.Aeson hiding (Number, Object)
 import Data.Typeable
+import qualified Data.ByteString.Char8 as B
+
+import Language.Haskell.TH
 
 data ListId a = All
 
@@ -37,7 +41,15 @@ resource = mkResourceReader
 list :: forall m x. (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => ListId x -> ListHandler (ReaderT Connection m)
 list All = mkListing (jsonO . someO) $ \range -> do
   conn <- ask
-  liftIO $ (findAll' conn (Just (offset range, count range)) :: IO [x])
+  liftIO $ (findPage conn range :: IO [x])
+
+findPage
+  :: (Model x, JSONSchema x, ToJSON x, Typeable x)
+  => Connection -> Rest.Range -> IO [x]
+findPage conn Range{..} =
+  dbSelect conn $ setLimit count
+                $ setOffset offset
+                $ modelDBSelect
 
 get :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
 get = mkIdHandler (jsonE . jsonO . someO) $ \_ pk -> do
@@ -63,5 +75,19 @@ create _ = mkInputHandler (jsonI . someI) $ \x -> do
   either (throwError . InputError . UnsupportedFormat . show) (const $ return ()) res
 
 instance JSONSchema DBKey where
-  schema _ = Choice [ Object [Field {key = "dBKey", required = True, content = Number unbounded}]
-                    , Object [Field {key = "nullKey", required = True, content = Object []}]]
+  schema = gSchema
+
+instance JSONSchema (GDBRef a b) where
+  schema = gSchema
+
+-- | Helper to derive the requires instances
+deriveGenericRest :: Name -> DecsQ
+deriveGenericRest tyName = do
+  let ty = return $ ConT tyName
+  [d|
+    instance Model $ty
+    instance JSONSchema $ty where
+      schema = gSchema
+    instance ToJSON $ty where
+    instance FromJSON $ty where
+    |]
