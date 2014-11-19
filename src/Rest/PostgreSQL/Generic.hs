@@ -79,10 +79,10 @@ remove = mkIdHandler id $ \_ pk -> do
   liftIO $ destroyByRef conn pk
 
 create :: forall m x. (MonadIO m, Model x, JSONSchema x, FromJSON x, Typeable x) => Proxy x -> Handler (WithGenericState m)
-create _ = mkInputHandler (jsonI . someI) $ \x -> do
+create _ = mkInputHandler (jsonE . jsonO . someO. jsonI . someI) $ \x -> do
   conn <- asks connection
   res <- liftIO $ trySave conn (x :: x)
-  either (throwError . InputError . UnsupportedFormat . show) (const $ return ()) res
+  either (throwError . InputError . UnsupportedFormat . show) (return . primaryKey) res
 
 instance JSONSchema DBKey where
   schema = gSchema
