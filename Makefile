@@ -6,28 +6,26 @@ CTAGS=$(if $(HOTHASKTAGS),$(HOTHASKTAGS),/bin/false)
 STYLISHHASKELL=$(shell which stylish-haskell 2>/dev/null)
 STYLISH=$(if $(STYLISHHASKELL),$(STYLISHHASKELL),/bin/false)
 
-all: tags
+all: tags format
 
-.PHONY: all test clean
+.PHONY: all test clean format
 
 tags: $(SOURCES)
 	@if [ "$(HOTHASKTAGS)" ] ; then /bin/echo -e "CTAGS\ttags" ; fi
 	@$(CTAGS) $^ > tags $(REDIRECT)
 
 clean:
-	@/bin/echo -e "CLEAN"
-	@cabal clean >/dev/null
 	@rm -f tags
+	cabal clean >/dev/null
 
 lint: $(SOURCES)
 	for i in $^; do hlint $$i; done
 
 test:
-	@/bin/echo -e "TEST"
 	cabal test
 
 build:
 	cabal build
 
-format: $(SOURCES)
-	for i in $^; do stylish-haskell -i $$i; done
+format: .stylish-haskell.yaml $(SOURCES)
+	$(STYLISH) -c $< -i $(filter-out $<,$^)
