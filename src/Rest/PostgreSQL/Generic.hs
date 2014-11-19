@@ -88,6 +88,6 @@ deriveGenericRest tyName = do
     instance Model $ty
     instance JSONSchema $ty where
       schema = gSchema
-    instance ToJSON $ty where
-    instance FromJSON $ty where
+    instance ToJSON $ty
+    instance FromJSON $ty
     |]
