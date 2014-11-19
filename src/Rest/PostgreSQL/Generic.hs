@@ -16,6 +16,7 @@ import Control.Monad.Error
 import Control.Monad.Reader
 
 import Data.Aeson hiding (Number, Object)
+import Data.Aeson.TH
 import qualified Data.ByteString.Char8 as B
 import Data.JSON.Schema
 import Data.Typeable
@@ -84,10 +85,10 @@ instance JSONSchema (GDBRef a b) where
 deriveGenericRest :: Name -> DecsQ
 deriveGenericRest tyName = do
   let ty = return $ ConT tyName
-  [d|
+  ds1 <- [d|
     instance Model $ty
     instance JSONSchema $ty where
       schema = gSchema
-    instance ToJSON $ty
-    instance FromJSON $ty
     |]
+  ds2 <- deriveJSON defaultOptions tyName
+  return $ ds1 ++ ds2
