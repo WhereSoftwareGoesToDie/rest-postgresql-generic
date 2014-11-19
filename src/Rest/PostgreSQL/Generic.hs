@@ -25,7 +25,16 @@ import Language.Haskell.TH
 
 data ListId a = All
 
-type GenericResource m tr x = Resource (ReaderT Connection m) (ReaderT (GDBRef tr x) (ReaderT Connection m)) (GDBRef tr x) (ListId x) Void
+type WithGenericState m = ReaderT (GenericState m) m
+type GenericResource m tr x = Resource (WithGenericState m) (ReaderT (GDBRef tr x) (WithGenericState m)) (GDBRef tr x) (ListId x) Void
+
+data GenericState m = GenericState
+    { connection :: Connection
+    , logger     :: Int -> String -> m ()
+    }
+
+defaultState :: MonadIO m => Connection -> GenericState m
+defaultState conn = GenericState conn (\_ _ -> return ())
 
 -- | A generic resource.
 resource :: forall m x tr. (MonadIO m, Applicative m, Model x, JSONSchema x, ToJSON x, FromJSON x, Typeable x) => GenericResource m tr x
@@ -39,9 +48,9 @@ resource = mkResourceReader
   , R.create = Just (create (Proxy :: Proxy x))
   }
 
-list :: forall m x. (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => ListId x -> ListHandler (ReaderT Connection m)
+list :: forall m x. (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => ListId x -> ListHandler (WithGenericState m)
 list All = mkListing (jsonO . someO) $ \range -> do
-  conn <- ask
+  conn <- asks connection
   liftIO $ (findPage conn range :: IO [x])
 
 findPage
@@ -52,26 +61,26 @@ findPage conn Range{..} =
                 $ setOffset offset
                 $ modelDBSelect
 
-get :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
+get :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (WithGenericState m))
 get = mkIdHandler (jsonE . jsonO . someO) $ \_ pk -> do
-  conn <- lift . lift $ ask
+  conn <- lift . lift $ asks connection
   x <- liftIO $ findRow conn pk
   maybe (throwError NotFound) return x
 
-update :: forall m x tr. (MonadIO m, Model x, JSONSchema x, FromJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
+update :: forall m x tr. (MonadIO m, Model x, JSONSchema x, FromJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (WithGenericState m))
 update = mkInputHandler (jsonE . jsonI . someI) $ \x -> do
-  conn <- lift . lift $ ask
+  conn <- lift . lift $ asks connection
   res <- liftIO $ trySave conn (x :: x)
   either (throwError . InputError . UnsupportedFormat . show) (const $ return ()) res
 
-remove :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (ReaderT Connection m))
+remove :: (MonadIO m, Model x, JSONSchema x, ToJSON x, Typeable x) => Handler (ReaderT (GDBRef tr x) (WithGenericState m))
 remove = mkIdHandler id $ \_ pk -> do
-  conn <- lift . lift $ ask
+  conn <- lift . lift $ asks connection
   liftIO $ destroyByRef conn pk
 
-create :: forall m x. (MonadIO m, Model x, JSONSchema x, FromJSON x, Typeable x) => Proxy x -> Handler (ReaderT Connection m)
+create :: forall m x. (MonadIO m, Model x, JSONSchema x, FromJSON x, Typeable x) => Proxy x -> Handler (WithGenericState m)
 create _ = mkInputHandler (jsonI . someI) $ \x -> do
-  conn <- ask
+  conn <- asks connection
   res <- liftIO $ trySave conn (x :: x)
   either (throwError . InputError . UnsupportedFormat . show) (const $ return ()) res
 

@@ -17,7 +17,7 @@ import Snap.Http.Server
 import System.Process
 import Control.Concurrent.Async
 
-import Rest.PostgreSQL.Generic (resource, deriveGenericRest, GenericResource)
+import Rest.PostgreSQL.Generic (resource, deriveGenericRest, GenericResource, WithGenericState, defaultState)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.ORM
 import Database.PostgreSQL.ORM.CreateTable
@@ -42,16 +42,16 @@ data Post = Post
   } deriving (Generic, Typeable, Show, Eq)
 deriveGenericRest ''Post
 
-testRouter :: forall m . (Applicative m, MonadIO m) => Router (ReaderT Connection m) (ReaderT Connection m)
+testRouter :: forall m . (Applicative m, MonadIO m) => Router (WithGenericState m) (WithGenericState m)
 testRouter = root -/ post
   where
     post = route (resource :: GenericResource m tr Post)
 
-testApi :: Api (ReaderT Connection Snap)
+testApi :: Api (WithGenericState Snap)
 testApi = [(mkVersion 1 0 0, Some1 testRouter)]
 
-runStack :: Connection -> ReaderT Connection Snap a -> Snap a
-runStack conn m = runReaderT m conn
+runStack :: Connection -> WithGenericState Snap a -> Snap a
+runStack conn m = runReaderT m (defaultState conn)
 
 testSnap :: Connection -> Snap ()
 testSnap conn = apiToHandler' (runStack conn) testApi
