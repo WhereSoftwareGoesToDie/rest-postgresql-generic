@@ -2,7 +2,14 @@
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
-module Rest.PostgreSQL.Generic where
+module Rest.PostgreSQL.Generic(
+    GenericResource,
+    GenericState(..),
+    WithGenericState,
+    defaultState,
+    deriveGenericRest,
+    resource
+) where
 
 import Rest hiding (range)
 import qualified Rest.Resource as R
