@@ -4,6 +4,7 @@
 {-# LANGUAGE TemplateHaskell     #-}
 module Rest.PostgreSQL.Generic(
     GenericResource,
+    WithGenericResource,
     GenericState(..),
     WithGenericState,
     defaultState,
@@ -33,7 +34,8 @@ import Language.Haskell.TH
 data ListId a = All
 
 type WithGenericState m = ReaderT (GenericState m) m
-type GenericResource m tr x = Resource (WithGenericState m) (ReaderT (GDBRef tr x) (WithGenericState m)) (GDBRef tr x) (ListId x) Void
+type WithGenericResource m tr x =  ReaderT (GDBRef tr x) (WithGenericState m)
+type GenericResource m tr x = Resource (WithGenericState m) (WithGenericResource m tr x) (GDBRef tr x) (ListId x) Void
 
 data GenericState m = GenericState
     { connection :: Connection
